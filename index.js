@@ -2,6 +2,12 @@
 
 const express = require('express');
 const { Server } = require('ws');
+const Car = require('./car')
+const mongoose = require('mongoose')
+
+mongoose.connect('mongodb+srv://olajide:tech10@cluster0.4x6cv.mongodb.net/catholic?retryWrites=true&w=majority', 
+    { useNewUrlParser: true },
+    ()=> console.log('connected to db'));
 
 const PORT = process.env.PORT || 2498;
 const INDEX = '/index.html';
@@ -17,9 +23,23 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => console.log('Client disconnected'));
 
-  ws.on('message', (message) =>{
+  ws.on('message', async(data) =>{
     // this stays within the server
-    console.log('[SERVER]: Received a message => %s', message );
+    //console.log('[SERVER]: Received a message => %s', data );
+
+    var objectt = JSON.parse(data);
+        
+    const cardata = new Car({
+        fuelLevel: objectt.fuelLevel,
+        speed: objectt.speed
+    })
+    try {
+      const savedData = await cardata.save()
+      console.log(savedData)
+      
+  } catch (error) {
+      console.log(error)
+  }
 
     // broadcast message to all clients
     wss.clients.forEach(function per(client){
@@ -34,8 +54,8 @@ wss.on('connection', (ws) => {
 
 });
 
-setInterval(() => {
-  wss.clients.forEach((client) => {
-    client.send(JSON.stringify({"Live reading":(Math.floor(Math.random() * 10 ) +1 )}));
-  });
-}, 2000);
+// setInterval(() => {
+//   wss.clients.forEach((client) => {
+//     client.send(JSON.stringify({"Live reading":(Math.floor(Math.random() * 10 ) +1 )}));
+//   });
+// }, 2000);
