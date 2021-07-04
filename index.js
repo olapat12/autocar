@@ -1,61 +1,41 @@
-const http = require('http')
-const express = require('express')
-const app = express();
-const cors = require('cors')
-const PORT = process.env.PORT || 128;
-const WebSocket = require('ws')
-const server = http.createServer(express)
-const wss = new WebSocket.Server({server})
-const dotenv = require('dotenv')
-const Car = require('./car')
-const mongoose = require('mongoose')
-const INDEX = '/indexx.html';
+'use strict';
 
-dotenv.config();
-app.use(cors())
-mongoose.connect(process.env.DB_CONNECT, 
-    { useNewUrlParser: true },
-    ()=> console.log('connected to db'));
+const express = require('express');
+const { Server } = require('ws');
 
-   
-app.get('/all', async(req, res)=>{
+const PORT = process.env.PORT || 2498;
+const INDEX = '/index.html';
 
-    try {
-       const all = await Car.find()
-       res.status(200).send(all) 
-    } catch (error) {
-        console.log(error)
-    }
-})
+const server = express()
+  .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
+  .listen(PORT, () => console.log(`We\'re live on channel : ${PORT}`));
 
-wss.on('connection', (ws)=>{
+const wss = new Server({ server });
 
-  console.log('connected')
+wss.on('connection', (ws) => {
+  console.log('Client connected');
 
-    ws.on('message', async function incoming(data){
-        var objectt = JSON.parse(data);
-        
-      const cardata = new Car({
-          fuelLevel: objectt.fuelLevel,
-          speed: objectt.speed
-      })
-      try {
-        const savedData = await cardata.save()
-       // console.log(savedData)
-        
-    } catch (error) {
-        console.log(error)
-    }
-        wss.clients.forEach(function each(client){
-            if(client !== ws && client.readyState === WebSocket.OPEN){
-                client.send(data)
-                console.log(JSON.parse(data))
-            }
-        })
+  ws.on('close', () => console.log('Client disconnected'));
+
+  ws.on('message', (message) =>{
+    // this stays within the server
+    console.log('[SERVER]: Received a message => %s', message );
+
+    // broadcast message to all clients
+    wss.clients.forEach(function per(client){
+        if(client !== ws && client.readyState === webSocket.OPEN){
+            client.send(message);
+            console.log("Broadcast msg: "+ message);
+        }
+        client.send('Youre receiving this message cos youre on our network')
     })
+
+    })
+
 });
 
-
-
-app.use((req, res) => res.sendFile(INDEX, { root: __dirname }))
-server.listen(PORT, () => console.log(`Listening on ${PORT}`));
+setInterval(() => {
+  wss.clients.forEach((client) => {
+    client.send(JSON.stringify({"Live reading":(Math.floor(Math.random() * 10 ) +1 )}));
+  });
+}, 2000);
