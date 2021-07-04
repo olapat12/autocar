@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <h1>testing app</h1>
+        <pre id='messages' style='height: 150px; overflow: scroll;'></pre>
+        <input type='text' id='messageBox' place='type your message' style='display: block; width: 100%; margin-bottom: 10px; padding: 10px;' />
+        <button id='send'>Send message</button>
+    </body>
+    <script>
+        (function(){
+            const sendBtn = document.querySelector('#send')
+            const messages = document.querySelector('#messages')
+            const messageBox = document.querySelector('#messageBox')
+
+            let ws;
+
+            function showMessage(message){
+                messages.textContent += `\n\n${message}`
+                messages.scrollTop = messages.scrollHeight;
+                messageBox.value = ''
+            }
+
+            function init(){
+                if(ws){
+                    ws.onerror = ws.onopen = ws.onclose = null;
+                    ws.close()
+                }
+                 var HOST = location.origin.replace(/^http/, 'ws')
+
+                 // `ws://localhost:128`
+                ws = new WebSocket(HOST);
+                ws.onopen = () => {
+                    console.log('connection opened')
+                }
+                ws.onmessage = ({data}) =>{
+                    showMessage(data);
+                    console.log(data)
+                } 
+                ws.onclose = function(){
+                    ws = null;
+                }
+            }
+            
+
+            sendBtn.onclick = function(){
+                if(!ws){
+                    showMessage("No websocket connection")
+                    return
+                }
+                let data = {fuelLevel: '23litres', speed: '230km'}
+                console.log(messageBox.value)
+                ws.send(JSON.stringify(data))
+                showMessage(messageBox.value)
+            }
+            init();
+        })()
+    </script>
+</html>
